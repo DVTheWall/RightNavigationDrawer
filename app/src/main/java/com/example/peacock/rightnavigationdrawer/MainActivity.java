@@ -1,5 +1,6 @@
 package com.example.peacock.rightnavigationdrawer;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -7,6 +8,8 @@ import android.os.Bundle;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,37 +25,50 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    ArrayList<String> dataArray_right=new ArrayList<String>();
+    ArrayList<String> dataArray_right = new ArrayList<String>();
 
-    ArrayList<Object> objectArray_right=new ArrayList<Object>();
+    ArrayList<Object> objectArray_right = new ArrayList<Object>();
 
-    ArrayList<String> dataArray_left=new ArrayList<String>();
+    ArrayList<DataModel> list;
 
-    ArrayList<Object> objectArray_left=new ArrayList<Object>();
+    ArrayList<String> dataArray_left = new ArrayList<String>();
+
+    ArrayList<Object> objectArray_left = new ArrayList<Object>();
 
 
+    LinearLayoutManager lm;
     DrawerLayout mDrawerlayout;
-    ListView mDrawerList_Left,mDrawerList_Right;
+    // set Right side Recyclerview
+    RecyclerView Recycler_right;
+    ListView mDrawerList_Left;
     ActionBarDrawerToggle mDrawerToggle;
-    ImageButton imgLeftMenu,imgRightMenu;
+    ImageButton imgLeftMenu, imgRightMenu;
 
 
     ListItemsAdapter_Left Left_Adapter;
-    ListItemsAdapter_Right Right_Adapter;
+    RecyclerAdapter Right_Adapter;
+    Activity activity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        activity = MainActivity.this;
 
 
-        mDrawerlayout=(DrawerLayout)findViewById(R.id.drawer_layout);
-        mDrawerList_Left=(ListView)findViewById(R.id.drawer_list_left);
-        mDrawerList_Right=(ListView)findViewById(R.id.drawer_list_right);
-        imgLeftMenu=(ImageButton)findViewById(R.id.imgLeftMenu);
-        imgRightMenu=(ImageButton)findViewById(R.id.imgRightMenu);
+        mDrawerlayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mDrawerList_Left = (ListView) findViewById(R.id.drawer_list_left);
 
+        // set Right side Recyclerview
+        Recycler_right = (RecyclerView) findViewById(R.id.recycler_right);
+         lm = new LinearLayoutManager(activity, LinearLayoutManager.VERTICAL, false);
+
+        Recycler_right.setLayoutManager(lm);
+
+
+        imgLeftMenu = (ImageButton) findViewById(R.id.imgLeftMenu);
+        imgRightMenu = (ImageButton) findViewById(R.id.imgRightMenu);
 
 
         mDrawerlayout.setDrawerListener(mDrawerToggle);
@@ -61,13 +77,12 @@ public class MainActivity extends AppCompatActivity {
         //============== Define a Custom Header for Navigation drawer=================//
 
 
-        LayoutInflater inflator=(LayoutInflater)this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        View v=inflator.inflate(R.layout.header, null);
+        LayoutInflater inflator = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View v = inflator.inflate(R.layout.header, null);
 
 
-
-        imgLeftMenu=(ImageButton)v.findViewById(R.id.imgLeftMenu);
-        imgRightMenu=(ImageButton)v.findViewById(R.id.imgRightMenu);
+        imgLeftMenu = (ImageButton) v.findViewById(R.id.imgLeftMenu);
+        imgRightMenu = (ImageButton) v.findViewById(R.id.imgRightMenu);
 
         getSupportActionBar().setHomeButtonEnabled(true);
 
@@ -91,8 +106,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View arg0) {
                 // TODO Auto-generated method stub
-                if (mDrawerlayout.isDrawerOpen(mDrawerList_Right)){
-                    mDrawerlayout.closeDrawer(mDrawerList_Right);
+                if (mDrawerlayout.isDrawerOpen(Recycler_right)) {
+                    mDrawerlayout.closeDrawer(Recycler_right);
                 }
                 mDrawerlayout.openDrawer(mDrawerList_Left);
             }
@@ -104,20 +119,30 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // TODO Auto-generated method stub
-                if (mDrawerlayout.isDrawerOpen(mDrawerList_Left)){
+                if (mDrawerlayout.isDrawerOpen(mDrawerList_Left)) {
                     mDrawerlayout.closeDrawer(mDrawerList_Left);
                 }
-                mDrawerlayout.openDrawer(mDrawerList_Right);
+                mDrawerlayout.openDrawer(Recycler_right);
             }
         });
 
 
-
         Fill_LeftList();
-        Fill_RightList();
+    //    Fill_RightList();
 
+
+        list = new ArrayList<>();
+
+        for (int i = 0; i < 10; i++) {
+            DataModel data = new DataModel();
+
+            data.setName("Option: " + i);
+
+            list.add(data);
+        }
+
+        Recycler_right.setAdapter( new RecyclerAdapter(activity, list));
         RefreshListView();
-
 
 
     }
@@ -133,22 +158,13 @@ public class MainActivity extends AppCompatActivity {
         mDrawerList_Left.setAdapter(Left_Adapter);
 
 
+//        list.clear();
 
-        objectArray_right.clear();
-        for (int i = 0; i < dataArray_right.size(); i++) {
-            Object obj = new Object();
-            objectArray_right.add(obj);
-        }
-        Log.d("object array", "" + objectArray_right.size());
-        Right_Adapter = new ListItemsAdapter_Right(objectArray_right, 1);
-        mDrawerList_Right.setAdapter(Right_Adapter);
 
     }
 
 
-
-    public void Fill_LeftList()
-    {
+    public void Fill_LeftList() {
 
         dataArray_left.clear();
 
@@ -163,8 +179,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void Fill_RightList()
-    {
+    public void Fill_RightList() {
+
+
         dataArray_right.clear();
 
         dataArray_right.add("Option 1");
@@ -175,12 +192,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     //  ==============   Left Listview Adapter Implementation;=====================//
 
 
-    private class ListItemsAdapter_Left extends ArrayAdapter<Object>
-    {
+    private class ListItemsAdapter_Left extends ArrayAdapter<Object> {
         ViewHolder holder1;
 
         public ListItemsAdapter_Left(List<Object> items, int x) {
@@ -194,11 +209,11 @@ public class MainActivity extends AppCompatActivity {
             return dataArray_left.get(position);
         }
 
-        public int getItemInteger(int pos)
-        {
+        public int getItemInteger(int pos) {
             return pos;
 
         }
+
         @Override
         public int getCount() {
             // TODO Auto-generated method stub
@@ -215,28 +230,23 @@ public class MainActivity extends AppCompatActivity {
         public View getView(int position, View convertView, ViewGroup parent) {
             // TODO Auto-generated method stub
 
-            LayoutInflater inflator=getLayoutInflater();
+            LayoutInflater inflator = getLayoutInflater();
 
-            convertView=inflator.inflate(R.layout.data, null);
-
-
-
-            holder1=new ViewHolder();
-
-            holder1.text=(TextView)convertView.findViewById(R.id.txtData);
+            convertView = inflator.inflate(R.layout.data, null);
 
 
+            holder1 = new ViewHolder();
 
-            holder1.iv=(ImageView)convertView.findViewById(R.id.imgView);
+            holder1.text = (TextView) convertView.findViewById(R.id.txtData);
+
+
+            holder1.iv = (ImageView) convertView.findViewById(R.id.imgView);
 
 
             convertView.setTag(holder1);
 
-            String text=dataArray_left.get(position);
+            String text = dataArray_left.get(position);
             holder1.text.setText(dataArray_left.get(position));
-
-
-
 
 
             return convertView;
@@ -244,7 +254,43 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    //=============Right Listview Adapter Implementation;================//
+
+
+/*    private  class  RecyclerAdapter extends {
+
+        Context context;
+
+
+
+
+        public  class  viewHolder extends  RecyclerView.ViewHolder{
+
+            TextView txtData;
+
+            public viewHolder(View itemView) {
+                super(itemView);
+
+
+                txtData = itemView.findViewById(R.id.txtData);
+
+
+                itemView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+
+
+                        Toast.makeText(context, "Position : " + getAdapterPosition(), Toast.LENGTH_SHORT).show();
+
+                    }
+                });
+
+            }
+
+
+        }
+    }*/
+
+/*    //=============Right Listview Adapter Implementation;================//
 
 
     private class ListItemsAdapter_Right extends ArrayAdapter<Object>
@@ -310,16 +356,14 @@ public class MainActivity extends AppCompatActivity {
             return convertView;
         }
 
-    }
-
+    }*/
 
 
     private class ViewHolder {
-        TextView text,textcounter;
+        TextView text, textcounter;
         ImageView iv;
 
     }
-
 
 
 }
